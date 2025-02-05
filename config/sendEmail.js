@@ -3,8 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config()
 
-
-
 if (!process.env.RESEND_API) {
     console.log("provide RESEND_API in .env file")
 }
