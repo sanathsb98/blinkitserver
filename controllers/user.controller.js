@@ -5,6 +5,7 @@ import verifyEmailTemplate from "../utils/verifyEmailTemplate.js";
 import dotenv from 'dotenv';
 import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
+import uploadImageCloudinary from "../utils/uploadImageCloudinary.js";
 
 dotenv.config()
 
@@ -160,6 +161,64 @@ const loginController = async (req,res) => {
     }
 }
 
+const logoutController = async (req,res) => {
+
+    try{
+
+        const userId = req.userId;
+        
+          res.clearCookie('accessToken',{
+            httpOnly : true,
+            secure : true,
+            sameSite : 'None'
+          })
+          res.clearCookie('refreshToken',{
+            httpOnly : true,
+            secure : true,
+            sameSite : 'None'
+          })
+
+          const removeRefreshToken = await UserModel.updateOne({_id:userId},{refresh_token : ""})
+
+          return res.json({
+              message : "Logout successful",
+              error : false,
+              success : true
+          })
+    }catch(error){
+        return res.status(500).json({
+            message : error.message || error,
+            error : true,
+            success : false
+        })
+    }
+}
+
+const uploadAvatar = async (req,res) => {
+ try{
+    const image = req.file; // multer middleware
+    const userId = req.userId; // auth  middleware
+    const upload = await uploadImageCloudinary(image)
+
+    const updateUser = await UserModel.findByIdAndUpdate({_id:userId},{avatar : upload.url})
+
+    
+    return res.json({
+        message : "Image uploaded successfully",
+        error : false,
+        success : true,
+        _id : userId,
+        avatar : upload.url
+    })
+ }catch(error){
+    return response.status(500).json({
+        message : error.message || error,
+        error : true,
+        success : false
+    })
+ }
+}
+
 
     
 
@@ -169,5 +228,7 @@ export default
     {
         registerUserController,
         verifyEmailController,
-        loginController
+        loginController,
+        logoutController,
+        uploadAvatar
     };
