@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
 import uploadImageCloudinary from "../utils/uploadImageCloudinary.js";
+import generateOtp from "../utils/generateOtp.js";
+import { response } from "express";
+import forgotPasswordTemplate from "../utils/forgotPasswordTemplate.js";
 
 dotenv.config()
 
@@ -219,6 +222,85 @@ const uploadAvatar = async (req,res) => {
  }
 }
 
+const updateUserDetails = async (req, res) => {
+    try {
+        const userId = req.userId; // auth middleware
+        const { name, email, mobile, password } = req.body;
+        let hashPassword = "";
+
+        if(password){
+            const salt = await bcryptjs.genSalt(10)
+            hashPassword = await bcryptjs.hash(password, salt)
+        }
+
+        const updateUser = await UserModel.updateOne({ _id: userId }, {
+            ...(name && { name: name }),
+            ...(email && { email: email }),
+            ...(mobile && { mobile: mobile }),
+            ...(password && { password: hashPassword }),
+        })
+
+        return res.json({
+            message: "User updated successfully",
+            error: false,
+            success: true,
+            data: updateUser
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        })
+    }
+}
+
+const forgotPasswordController = async (req,res) => {
+    try{
+        const {email} = req.body;
+        const user = await UserModel.findOne({email})
+    
+        if(!user){
+            return res.status(400).json({
+                message : "User not registered",
+                error : true,
+                success : false
+            })
+        }
+
+        const otp = generateOtp()
+        const expireTime = new Date() + 60 * 60 * 1000 //1hr
+
+        const update = await UserModel.findByIdAndUpdate({_id:user._id},{
+            forgot_password_otp : otp,
+            forgot_password_expiry : new Date(expireTime).toISOString()
+        })
+
+        await sendEmail({
+            sendTo : email,
+            subject : "Blinkit Forgot Password",
+            html : forgotPasswordTemplate({
+                name : user.name,
+                otp : otp
+            })
+        })
+
+        return res.json({
+            message : "Otp sent to email",
+            error : false,
+            success : true
+        })
+
+    }catch(error){
+        return res.status(500).json({
+            message : error.message || error,
+            error : true,
+            success : false
+        })
+    }
+}
+
 
     
 
@@ -230,5 +312,7 @@ export default
         verifyEmailController,
         loginController,
         logoutController,
-        uploadAvatar
+        uploadAvatar,
+        updateUserDetails,
+        forgotPasswordController
     };
