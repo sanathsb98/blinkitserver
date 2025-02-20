@@ -301,11 +301,106 @@ const forgotPasswordController = async (req,res) => {
     }
 }
 
+const verifyForgotPasswordOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        console.log(email, otp)
+        const user = await UserModel.findOne({ email })
 
-    
+        if (!email || !otp) {
+            return res.status(400).json({
+                message: "Provide email and otp",
+                error: true,
+                success: false
+            })
+        }
 
+        if (!user) {
+            return res.status(400).json({
+                message: "User not registered",
+                error: true,
+                success: false
+            })
+        }
 
+        const currentTime = new Date().toDateString();
+        if (user.forgot_password_expiry < currentTime) {
+            return res.status(400).json({
+                message: "Otp expired",
+                error: true,
+                success: false
+            })
+        }
 
+        if (user.forgot_password_otp !== otp) {
+            return res.status(400).json({
+                message: "Invalid otp",
+                error: true,
+                success: false
+            })
+        }
+
+        return res.json({
+            message: "Otp verified successfully",
+            error: false,
+            success: true
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        })
+    }
+}
+
+const resetPasswordController = async (req, res) => {
+    try {
+        const { email, newPassword, confirmPassword } = req.body;
+
+        if(!email || !newPassword || !confirmPassword){
+            return res.status(400).json({
+                message : "Provide required fields",
+                error : true,
+                success : false
+            })
+        }
+
+        const user = await UserModel.findOne({ email })
+        if(!user){
+            return res.status(400).json({
+                message : "User not registered",
+                error : true,
+                success : false
+            })
+        }
+        if(newPassword !== confirmPassword){
+            return res.status(400).json({
+                message : "Password not matched",
+                error : true,
+                success : false
+            })
+        }
+        const salt = await bcryptjs.genSalt(10);
+        const hashPassword = await bcryptjs.hash(newPassword,salt)
+        const update = UserModel.findOneAndUpdate(user.id,{password : hashPassword})
+
+        return res.json({
+            message : "Password updated successfully",
+            error : false,
+            success : true
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        })
+    }
+}
+   
 export default
     {
         registerUserController,
@@ -314,5 +409,7 @@ export default
         logoutController,
         uploadAvatar,
         updateUserDetails,
-        forgotPasswordController
+        forgotPasswordController,
+        verifyForgotPasswordOtp,
+        resetPasswordController
     };
