@@ -9,6 +9,7 @@ import uploadImageCloudinary from "../utils/uploadImageCloudinary.js";
 import generateOtp from "../utils/generateOtp.js";
 import { response } from "express";
 import forgotPasswordTemplate from "../utils/forgotPasswordTemplate.js";
+import jwt from 'jsonwebtoken';
 
 dotenv.config()
 
@@ -400,6 +401,50 @@ const resetPasswordController = async (req, res) => {
         })
     }
 }
+
+const refreshTokenController = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refreshToken || req?.header?.authorization?.split('')[1];
+        if (!refreshToken) {
+            return res.status(400).json({
+                message: "Invalid token",
+                error: true,
+                success: false
+            })
+        }
+        const verifyToken = await jwt.verify(refreshToken, process.env.SECRET_KEY_REFRESH_TOKEN)
+        if (!verifyToken) {
+            return res.status(400).json({
+                message: "Invalid token",
+                error: true,
+                success: false
+            })
+        }
+        const newAccessToken = await generateAccessToken(verifyToken?.id)
+        res.cookie('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+        })
+
+        return res.json({
+            message: "New Acess Token Generated",
+            error: false,
+            success: true,
+            data: {
+                accessToken: newAccessToken
+            }
+        })
+
+        console.log(refreshToken)
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        })
+    }
+}
    
 export default
     {
@@ -411,5 +456,6 @@ export default
         updateUserDetails,
         forgotPasswordController,
         verifyForgotPasswordOtp,
-        resetPasswordController
+        resetPasswordController,
+        refreshTokenController
     };

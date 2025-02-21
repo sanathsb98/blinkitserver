@@ -2,7 +2,7 @@ import {Router} from 'express';
 import controllers from '../controllers/user.controller.js';
 import auth from '../middleware/auth.js';
 import upload from '../middleware/multer.js';
-const {registerUserController,verifyEmailController,loginController,logoutController,uploadAvatar,updateUserDetails,forgotPasswordController,verifyForgotPasswordOtp,resetPasswordController} = controllers;
+const {registerUserController,verifyEmailController,loginController,logoutController,uploadAvatar,updateUserDetails,forgotPasswordController,verifyForgotPasswordOtp,resetPasswordController,refreshTokenController} = controllers;
 
 const userRouter = Router()
 
@@ -15,5 +15,6 @@ userRouter.put("/update-user",auth,updateUserDetails)
 userRouter.post("/forgot-password",forgotPasswordController)
 userRouter.put("/verify-forgot-password-otp",verifyForgotPasswordOtp)
 userRouter.put("/reset-password",resetPasswordController)
+userRouter.post("/refresh-token",refreshTokenController)
 
 export default userRouter
